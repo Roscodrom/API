@@ -7,7 +7,7 @@ services:
       - "27017:27017"
     environment:
       MONGO_INITDB_ROOT_USERNAME: root
-      MONGO_INITDB_ROOT_PASSWORD: passpj03
+      MONGO_INITDB_ROOT_PASSWORD: P@ssw0rd
     volumes:
       - mongo-data:/data/db-pj03
 
@@ -20,7 +20,7 @@ services:
       - "8081:8081"
     environment:
       ME_CONFIG_MONGODB_ADMINUSERNAME: root
-      ME_CONFIG_MONGODB_ADMINPASSWORD: passpj03
-      ME_CONFIG_MONGODB_URL: "mongodb://root:example@mongo-ams2-pj03:27017/"
+      ME_CONFIG_MONGODB_ADMINPASSWORD: P@ssw0rd
+      ME_CONFIG_MONGODB_URL: "mongodb://root:P@ssw0rd@mongo-ams2-pj03:27017/"
 volumes:
   mongo-data:
