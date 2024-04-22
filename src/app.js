@@ -24,31 +24,82 @@ const dictionarySchema = new Schema({
   times_used: Number
 });
 
+const userSchema = new Schema({
+  nickname: String,
+  email: String,
+  phone_number: String,
+  uuid: String,
+  api_key: String,
+  avatar: String,
+  historial_partides: [String],
+  configuracions: {
+    idioma: String,
+    notificacions: Boolean
+  }
+});
+
 const Dictionary = mongoose.model('Dictionary', dictionarySchema);
+const Usuari = mongoose.model('Usuari', userSchema);
 
 mongoose.connect(dbConfig.MONGODB_URI)
-  .then(() => {
+  .then(async () => {
     console.log("Connected to MongoDB");
 
-    const collectionName = Dictionary.collection.collectionName;
-    return mongoose.connection.db.listCollections({name: collectionName}).next();
-  })
-  .then(collection => {
-    if (!collection) {
-      console.log("Collection does not exist. Inserting words...");
-      insertWords();
-    } else {
-      console.log("Collection already exists.");
+    // Get an array with all the collections
+    const collections = await mongoose.connection.db.listCollections().toArray();
+    let collectionsDict = {};
+
+    // Get us collections names
+    const userCollectionName = Usuari.collection.collectionName;
+    const dictionaryCollectionName = Dictionary.collection.collectionName;
+
+    // Check for all the collections data and save it in a dictionary
+    for (const collectionInfo of collections) {
+      const collectionName = collectionInfo.name;
+
+      const collectionDetails = await mongoose.connection.db.listCollections({ name: collectionName }).next();
+      collectionsDict[collectionName] = collectionDetails;
     }
+
+    // Check if all the collections are createds
+    console.log("Check if all the collection are created")
+    if (!(dictionaryCollectionName in collectionsDict)) {
+      console.log("Collection dictionay does not exist. Inserting words...");
+      insertWords();
+    }
+    if (!(userCollectionName in collectionsDict)) {
+      console.log("Collection usuari does not exist. Inserting user...");
+      const firstUsuari = new Usuari({
+        "nickname": "Usuari1",
+        "email": "usuari1@example.com",
+        "phone_number": "+34612345678",
+        "uuid": "ASDF097A9FSDHLUOIPFADA709870AFD",
+        "api_key": "abc123xyz456",
+        "avatar": "url_a_imatge",
+        "historial_partides": ["id_partida1", "id_partida2"],
+        "configuracions": {
+          "idioma": "català",
+          "notificacions": true
+        }
+      });
+      try {
+        await firstUsuari.save();
+        console.log("Collection usuaris created!");
+      } catch (error) {
+        console.error("Error saving new user:", error);
+      }
+    }
+    console.log("Collection ready to work with them.");
+
   })
   .catch(err => console.error("Could not connect to MongoDB", err));
 
-  
+app.use('/api', userRoutes);
+
+// General and example endpoints
 app.get('/api/health', (req, res) => {
   res.json({ status: "OK" });
 });
-
-app.use('/api', userRoutes);
 
 app.post('/api/events', async (req, res) => {
   try {
@@ -72,6 +123,7 @@ app.get('/api/events/:id', async (req, res) => {
   }
 });
 
+// Endpoints to interact with dictionaris collection
 app.get('/api/words/:language', async (req, res) => {
   try {
     const language = req.params.language;
@@ -89,7 +141,44 @@ app.get('/api/words/:language', async (req, res) => {
   }
 });
 
+// Endpoints to interact with users collections
+app.get('/api/user/user_list', async (req, res) => {
+  try {
+    const users = await Usuari.find({});
 
+    res.json(users);
+  } catch (err) {
+    console.error('Error retrieving user list:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+app.post('/api/user/register', async (req, res) => {
+  try {
+    const userData = req.body;
+    const newUser = new Usuari({
+      "nickname": userData.name,
+      "email": userData.email,
+      "phone_number": userData.phone_number,
+      "uuid": "ASDF097A9FSDHLUOIPFADA709870AFD",
+      "api_key": "abc123xyz456",
+      "avatar": userData.avatar,
+      "historial_partides": [],
+      "configuracions": {
+        "idioma": "català",
+        "notificacions": true
+      }
+    });
+
+    // Add the user to the data base
+    await newUser.save();
+    console.log('User added:\n' + newUser)
+    res.status(201).json({ status: 'OK', message: 'User added', data: { "api_key": "abc123xyz456" } });
+  } catch (err) {
+    console.error('Error creating user:', err);
+    res.status(500).json({ status: 'ERROR', message: err });
+  }
+});
 
 module.exports = app;
 
@@ -101,12 +190,17 @@ async function processFile(filePath, language) {
   });
 
   let words = [];
+  let count = 0;
   for await (const line of rl) {
-    words.push({word: line, language: language, times_used: 0});
+    words.push({ word: line, language: language, times_used: 0 });
 
     if (words.length >= 500) {
       await Dictionary.insertMany(words);
       words = [];
+      count += 1;
+    }
+    if (count >= 10) {
+      console.log('Pushed arround ' + count * 10);
     }
   }
 
@@ -121,6 +215,7 @@ function insertWords() {
   for (let i = 0; i < files.length; i++) {
     const filePath = path.join(directoryPath, files[i]);
     const language = files[i].split('_')[0];
+    console.log(`Starting to process: ${files[i]}`);
     processFile(filePath, language)
       .then(() => console.log(`File processed: ${files[i]}`))
       .catch(err => console.error(err));
