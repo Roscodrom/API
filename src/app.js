@@ -113,7 +113,6 @@ app.get('/api/letter/:language/:letter', async (req, res) => {
 
     // Calculate the page number
     const page = Math.floor(precedingWordsCount / limit) + 1;
-    const skip = (page - 1) * limit;
 
     // Get the words for the calculated page
     const words = await Dictionary.find({
@@ -122,10 +121,8 @@ app.get('/api/letter/:language/:letter', async (req, res) => {
     })
     .sort({ word: 1 })
     .limit(limit);
-
-    console.log(words);
     
-    res.send(words);
+    res.send({'words': words, 'page': page});
   } catch (err) {
     res.status(500).send(err.message);
   }
