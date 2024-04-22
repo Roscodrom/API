@@ -3,7 +3,7 @@ const totalClients = 100;
 const clients = [];
 
 for (let i = 0; i < totalClients; i++) {
-  const socket = io('http://127.0.0.1:3000');
+  const socket = io('http://127.0.0.1:80');
 
   socket.on('connect', () => {
     console.log(`Client ${i} connected`);

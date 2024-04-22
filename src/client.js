@@ -1,7 +1,7 @@
 const io = require('socket.io-client');
 
 // Connecta al servidor; assegura't que l'URL coincideix amb la configuració del teu servidor
-const socket = io('http://127.0.0.1:3000');
+const socket = io('http://127.0.0.1:80');
 
 socket.on('connect', () => {
   console.log('Connectat al servidor');

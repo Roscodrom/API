@@ -36,7 +36,7 @@ const joc = new Joc(60000, 60000);  // 1 minut de partida, 1 minut de pausa
 
 io.on('connection', (socket) => {
   console.log('Usuari connectat');
-  
+
   const intervalId = setInterval(() => {
     const resposta = joc.consultaTempsRestant();
     socket.emit('TEMPS_PER_INICI', resposta);
@@ -61,5 +61,5 @@ io.on('connection', (socket) => {
   });
 });
 
-const port = process.env.PORT || 3000;
+const port = process.env.PORT || 80;
 server.listen(port, () => console.log(`Escoltant en el port ${port}...`));

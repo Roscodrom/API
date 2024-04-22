@@ -7,7 +7,7 @@ const dbConfig = require('./config/db');
 const userRoutes = require('./api/routes/userRoutes');
 const Event = require('./api/models/event');
 const app = express();
-const port = process.env.PORT || 3000;
+const port = process.env.PORT || 80;
 
 const Schema = mongoose.Schema;
 const directoryPath = path.join(__dirname, '../data/dicts');
