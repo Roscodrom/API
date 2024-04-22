@@ -124,11 +124,11 @@ app.get('/api/events/:id', async (req, res) => {
 });
 
 // Endpoints to interact with dictionaris collection
-app.get('/api/words/:language', async (req, res) => {
+app.get('/api/words/:language/:page', async (req, res) => {
   try {
     const language = req.params.language;
-    const page = parseInt(req.query.page) || 1;
-    const limit = 20;
+    const page = parseInt(req.params.page) || 1;
+    const limit = 13;
     const skip = (page - 1) * limit;
 
     const words = await Dictionary.find({ language: language })
@@ -136,6 +136,45 @@ app.get('/api/words/:language', async (req, res) => {
       .limit(limit);
 
     res.send(words);
+  } catch (err) {
+    res.status(500).send(err.message);
+  }
+});
+
+app.get('/api/letter/:language/:letter', async (req, res) => {
+  try {
+    const language = req.params.language;
+    const letter = req.params.letter;
+    const limit = 13;
+
+    // Find the first word that starts with the letter
+    const firstMatch = await Dictionary.findOne({
+      language: language,
+      word: new RegExp('^' + letter, 'i')
+    }).sort({ word: 1 });
+
+    if (!firstMatch) {
+      return res.status(404).send('No words found that start with ' + letter);
+    }
+
+    // Count the number of words that precede the first match in the sorted list
+    const precedingWordsCount = await Dictionary.countDocuments({
+      language: language,
+      word: { $lt: firstMatch.word }
+    });
+
+    // Calculate the page number
+    const page = Math.floor(precedingWordsCount / limit) + 1;
+
+    // Get the words for the calculated page
+    const words = await Dictionary.find({
+      language: language,
+      word: { $regex: '^' + letter, $options: 'i', $gte: firstMatch.word },
+    })
+      .sort({ word: 1 })
+      .limit(limit);
+
+    res.send({ 'words': words, 'page': page });
   } catch (err) {
     res.status(500).send(err.message);
   }
