@@ -41,6 +41,7 @@ const userSchema = new Schema({
 const Dictionary = mongoose.model('Dictionary', dictionarySchema);
 const Usuari = mongoose.model('Usuari', userSchema);
 
+console.log("Creating conneccion to MongoDB...");
 mongoose.connect(dbConfig.MONGODB_URI)
   .then(async () => {
     console.log("Connected to MongoDB");
@@ -89,7 +90,7 @@ mongoose.connect(dbConfig.MONGODB_URI)
         console.error("Error saving new user:", error);
       }
     }
-    console.log("Collection ready to work with them.");
+    console.log("Collections ready to work with them.");
 
   })
   .catch(err => console.error("Could not connect to MongoDB", err));
@@ -98,34 +99,15 @@ app.use('/api', userRoutes);
 
 // General and example endpoints
 app.get('/api/health', (req, res) => {
+  console.log(`Recived API request: API health, For: ${req.ip}`);
   res.json({ status: "OK" });
-});
-
-app.post('/api/events', async (req, res) => {
-  try {
-    const event = new Event(req.body);
-    await event.save();
-    res.status(201).send(event);
-  } catch (err) {
-    res.status(400).send(err.message);
-  }
-});
-
-app.get('/api/events/:id', async (req, res) => {
-  try {
-    const event = await Event.findById(req.params.id);
-    if (!event) {
-      return res.status(404).send("L'esdeveniment no s'ha trobat.");
-    }
-    res.send(event);
-  } catch (err) {
-    res.status(500).send(err.message);
-  }
+  console.log(`Compleated API request: API health, For: ${req.ip}`);
 });
 
 // Endpoints to interact with dictionaris collection
 app.get('/api/words/:language/:page', async (req, res) => {
   try {
+    console.log(`Recived API request: Get words of dict ${language} from page ${page}, For: ${req.ip}`);
     const language = req.params.language;
     const page = parseInt(req.params.page) || 1;
     const limit = 13;
@@ -136,13 +118,16 @@ app.get('/api/words/:language/:page', async (req, res) => {
       .limit(limit);
 
     res.send(words);
+    console.log(`Compleated API request: Get words in dict ${language} and page ${page}, For: ${req.ip}`);
   } catch (err) {
+    console.log(`Error: ${err}`);
     res.status(500).send(err.message);
   }
 });
 
 app.get('/api/letter/:language/:letter', async (req, res) => {
   try {
+    console.log(`Recived API request: Get words of dict ${language} statrting from letter ${letter}, For: ${req.ip}`);
     const language = req.params.language;
     const letter = req.params.letter;
     const limit = 13;
@@ -175,7 +160,9 @@ app.get('/api/letter/:language/:letter', async (req, res) => {
       .limit(limit);
 
     res.send({ 'words': words, 'page': page });
+    console.log(`Compleated API request: Get words of dict ${language} statrting from letter ${letter}, For: ${req.ip}`);
   } catch (err) {
+    console.log(`Error: ${err}`);
     res.status(500).send(err.message);
   }
 });
@@ -183,17 +170,20 @@ app.get('/api/letter/:language/:letter', async (req, res) => {
 // Endpoints to interact with users collections
 app.get('/api/user/user_list', async (req, res) => {
   try {
+    console.log(`Recived API request: Get list of all users, For: ${req.ip}`);
     const users = await Usuari.find({});
 
     res.json(users);
+    console.log(`Compleated API request: Get list of all users, For: ${req.ip}`);
   } catch (err) {
-    console.error('Error retrieving user list:', err);
+    console.log(`Error: ${err}`);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
 
 app.post('/api/user/register', async (req, res) => {
   try {
+    console.log(`Recived API request: Introduce a new user, For: ${req.ip}`);
     const userData = req.body;
     const newUser = new Usuari({
       "nickname": userData.name,
@@ -211,10 +201,10 @@ app.post('/api/user/register', async (req, res) => {
 
     // Add the user to the data base
     await newUser.save();
-    console.log('User added:\n' + newUser)
     res.status(201).json({ status: 'OK', message: 'User added', data: { "api_key": "abc123xyz456" } });
+    console.log(`Completed API request: Introduce a new user, For: ${req.ip}`);
   } catch (err) {
-    console.error('Error creating user:', err);
+    console.log(`Error: ${err}`);
     res.status(500).json({ status: 'ERROR', message: err });
   }
 });
@@ -229,17 +219,12 @@ async function processFile(filePath, language) {
   });
 
   let words = [];
-  let count = 0;
   for await (const line of rl) {
     words.push({ word: line, language: language, times_used: 0 });
 
     if (words.length >= 500) {
       await Dictionary.insertMany(words);
       words = [];
-      count += 1;
-    }
-    if (count >= 10) {
-      console.log('Pushed arround ' + count * 10);
     }
   }
 
@@ -254,7 +239,7 @@ function insertWords() {
   for (let i = 0; i < files.length; i++) {
     const filePath = path.join(directoryPath, files[i]);
     const language = files[i].split('_')[0];
-    console.log(`Starting to process: ${files[i]}`);
+    console.log(`Starting to process: ${files[i]}...`);
     processFile(filePath, language)
       .then(() => console.log(`File processed: ${files[i]}`))
       .catch(err => console.error(err));
