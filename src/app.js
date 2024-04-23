@@ -107,9 +107,9 @@ app.get('/api/health', (req, res) => {
 // Endpoints to interact with dictionaris collection
 app.get('/api/words/:language/:page', async (req, res) => {
   try {
-    console.log(`Recived API request: Get words of dict ${language} from page ${page}, For: ${req.ip}`);
     const language = req.params.language;
     const page = parseInt(req.params.page) || 1;
+    console.log(`Recived API request: Get words of dict ${language} from page ${page}, For: ${req.ip}`);
     const limit = 13;
     const skip = (page - 1) * limit;
 
@@ -127,9 +127,9 @@ app.get('/api/words/:language/:page', async (req, res) => {
 
 app.get('/api/letter/:language/:letter', async (req, res) => {
   try {
-    console.log(`Recived API request: Get words of dict ${language} statrting from letter ${letter}, For: ${req.ip}`);
     const language = req.params.language;
     const letter = req.params.letter;
+    console.log(`Recived API request: Get words of dict ${language} statrting from letter ${letter}, For: ${req.ip}`);
     const limit = 13;
 
     // Find the first word that starts with the letter
