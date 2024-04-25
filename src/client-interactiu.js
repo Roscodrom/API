@@ -8,7 +8,7 @@ const rl = readline.createInterface({
 });
 
 // Connecta al servidor
-const socket = io('http://127.0.0.1:80');
+const socket = io('http://127.0.0.1:80', { transports: [ 'websocket'] });
 
 socket.on('connect', () => {
   console.log('Connectat al servidor');
@@ -19,6 +19,18 @@ socket.on('connect', () => {
 socket.on('TEMPS_PER_INICI', (data) => {
   console.log(`Temps restant per l'inici: ${data.tempsRestant} ms, En Partida: ${data.enPartida ? 'Sí' : 'No'}`);
   mostrarMenu();
+});
+
+socket.on('ALTA_CONFIRMADA', (data) => {
+  console.log(data);
+});
+
+socket.on('PARTIDA_INICIADA', (data) => {
+  console.log(data);
+});
+
+socket.on('PARAULA_REBUDA', (data) => {
+  console.log(data);
 });
 
 socket.on('disconnect', () => {
@@ -64,7 +76,7 @@ function mostrarMenu() {
 function altaAPartida() {
   rl.question('Introdueix el teu nickname: ', (nickname) => {
     rl.question('Introdueix la teva API_KEY: ', (apiKey) => {
-      socket.emit('ALTA', `ALTA=${nickname};API_KEY=${apiKey}`);
+      socket.emit('ALTA', {alta: nickname, api_key: apiKey});
       mostrarMenu();
     });
   });
@@ -73,7 +85,7 @@ function altaAPartida() {
 function enviarParaula() {
   rl.question('Introdueix la paraula que vols enviar: ', (paraula) => {
     rl.question('Introdueix la teva API_KEY: ', (apiKey) => {
-      socket.emit('PARAULA', `PARAULA=${paraula};API_KEY=${apiKey}`);
+      socket.emit('PARAULA', {paraula: paraula, api_key: apiKey});
       mostrarMenu();
     });
   });
