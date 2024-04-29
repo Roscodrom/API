@@ -3,6 +3,7 @@ const fs = require('fs');
 const readline = require('readline');
 const path = require('path');
 const mongoose = require('mongoose');
+const mysql = require('mysql');
 const dbConfig = require('./config/db');
 const userRoutes = require('./api/routes/userRoutes');
 const Event = require('./api/models/event');
@@ -52,6 +53,14 @@ mongoose.connect(dbConfig.MONGODB_URI)
 
     // Get us collections names
     const userCollectionName = Usuari.collection.collectionName;
+    // const userCollection = mongoose.connection.db.collection(userCollectionName);
+    // const users = await userCollection.find({}).toArray();
+    // const usersForNavision = users.map(user => [user.nickname, user.email, user.phone_number, user.uuid, user.api_key, user.avatar, user.historial_partides, user.configuracions]);
+    // console.log(usersForNavision[0]);
+    // const connection = mysql.createConnection({});
+    // connection.connect();
+    // const query = 'INSERT INTO usuaris (nickname, email, phone_number, uuid, api_key, avatar, historial_partides, configuracions) VALUES ?';
+    // connection.query(query, [usersForNavision[0]], (err, result) => { if (err) throw Error; console.log(result); });
     const dictionaryCollectionName = Dictionary.collection.collectionName;
 
     // Check for all the collections data and save it in a dictionary
