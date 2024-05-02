@@ -4,7 +4,6 @@ const readline = require('readline');
 const path = require('path');
 const mongoose = require('mongoose');
 const dbConfig = require('./config/db');
-const userRoutes = require('./api/routes/userRoutes');
 const Dictionary = require('./api/models/dictionary');
 const Usuari = require('./api/models/usuari');
 const Partida = require('./api/models/partida');
@@ -74,8 +73,6 @@ mongoose.connect(dbConfig.MONGODB_URI)
 
   })
   .catch(err => console.error("Could not connect to MongoDB", err));
-
-app.use('/api', userRoutes);
 
 // General and example endpoints
 app.get('/api/health', (req, res) => {
