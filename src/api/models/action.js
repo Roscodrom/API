@@ -1,5 +1,7 @@
 const mongoose = require('mongoose');
 
+const Schema = mongoose.Schema;
+
 const actionSchema = new Schema({
     id_partida: Number,
     tipus_accio: String,

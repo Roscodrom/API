@@ -1,5 +1,7 @@
 const mongoose = require('mongoose');
 
+const Schema = mongoose.Schema;
+
 const partidaSchema = new Schema({
     tipus: String,
     id_partida: Number,
