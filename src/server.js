@@ -1,5 +1,6 @@
 const app = require('./app');
 const http = require('http');
+const mongoose = require('mongoose');
 const { Server } = require('socket.io');
 
 const server = http.createServer(app);
@@ -42,7 +43,7 @@ io.on('connection', (socket) => {
     socket.emit('TEMPS_PER_INICI', resposta);
     if (joc.enPartida) {
       socket.emit('PARTIDA_INICIADA', 'La partida ha començat');
-  }
+    }
   }, 10000);  // Envia el temps restant cada 10 segons
 
   socket.on('TEMPS_PER_INICI', () => {
@@ -52,14 +53,14 @@ io.on('connection', (socket) => {
 
   socket.on('ALTA', (data) => {
     console.log('Usuari donat d\'alta');
-    socket.emit('ALTA_CONFIRMADA', `Usuari ${data.alta} donat d\'alta`); 
+    socket.emit('ALTA_CONFIRMADA', `Usuari ${data.alta} donat d\'alta`);
   })
 
   socket.onAny((event, ...args) => {
     // if (event !== 'consulta temps' && event !== 'disconnect' && event !== 'connect') {
     //   console.log(`Comanda no reconeguda: ${event}`);
-      // const resposta = joc.consultaTempsRestant();
-      // socket.emit('TEMPS_PER_INICI', resposta);
+    // const resposta = joc.consultaTempsRestant();
+    // socket.emit('TEMPS_PER_INICI', resposta);
   });
 
   socket.on('PARAULA', (data) => {

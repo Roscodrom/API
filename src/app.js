@@ -3,10 +3,12 @@ const fs = require('fs');
 const readline = require('readline');
 const path = require('path');
 const mongoose = require('mongoose');
-const mysql = require('mysql');
 const dbConfig = require('./config/db');
 const userRoutes = require('./api/routes/userRoutes');
-const Event = require('./api/models/event');
+const Dictionary = require('./api/models/dictionary');
+const Usuari = require('./api/models/usuari');
+const Partida = require('./api/models/partida');
+const Action = require('./api/models/action');
 const app = express();
 const port = process.env.PORT || 80;
 
@@ -19,29 +21,6 @@ app.listen(port, () => {
   console.log(`Server is running on port ${port}`);
 })
 
-const dictionarySchema = new Schema({
-  word: String,
-  language: String,
-  times_used: Number
-});
-
-const userSchema = new Schema({
-  nickname: String,
-  email: String,
-  phone_number: String,
-  uuid: String,
-  api_key: String,
-  avatar: String,
-  historial_partides: [String],
-  configuracions: {
-    idioma: String,
-    notificacions: Boolean
-  }
-});
-
-const Dictionary = mongoose.model('Dictionary', dictionarySchema);
-const Usuari = mongoose.model('Usuari', userSchema);
-
 console.log("Creating conneccion to MongoDB...");
 mongoose.connect(dbConfig.MONGODB_URI)
   .then(async () => {
@@ -53,14 +32,6 @@ mongoose.connect(dbConfig.MONGODB_URI)
 
     // Get us collections names
     const userCollectionName = Usuari.collection.collectionName;
-    // const userCollection = mongoose.connection.db.collection(userCollectionName);
-    // const users = await userCollection.find({}).toArray();
-    // const usersForNavision = users.map(user => [user.nickname, user.email, user.phone_number, user.uuid, user.api_key, user.avatar, user.historial_partides, user.configuracions]);
-    // console.log(usersForNavision[0]);
-    // const connection = mysql.createConnection({});
-    // connection.connect();
-    // const query = 'INSERT INTO usuaris (nickname, email, phone_number, uuid, api_key, avatar, historial_partides, configuracions) VALUES ?';
-    // connection.query(query, [usersForNavision[0]], (err, result) => { if (err) throw Error; console.log(result); });
     const dictionaryCollectionName = Dictionary.collection.collectionName;
 
     // Check for all the collections data and save it in a dictionary
@@ -218,7 +189,6 @@ app.post('/api/user/register', async (req, res) => {
   }
 });
 
-module.exports = app;
 
 async function processFile(filePath, language) {
   const fileStream = fs.createReadStream(filePath);
@@ -254,3 +224,5 @@ function insertWords() {
       .catch(err => console.error(err));
   }
 }
+
+module.exports = app;
