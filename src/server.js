@@ -44,7 +44,7 @@ class Joc {
 
   startGame(playersInQueue, playersInGame, gameInfo) {
     const idCount = Partida.countDocuments;
-    this.roscoLetters = generateRosco();
+    this.roscoLetters = this.generateRosco();
     gameInfo = {
       "tipus": "multijugador",
       "id_partida": idCount + 1,
