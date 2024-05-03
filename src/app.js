@@ -9,16 +9,11 @@ const Usuari = require('./api/models/usuari');
 const Partida = require('./api/models/partida');
 const Action = require('./api/models/action');
 const app = express();
-const port = process.env.PORT || 80;
 
-const Schema = mongoose.Schema;
 const directoryPath = path.join(__dirname, '../data/dicts');
 
 app.use(express.json());
 app.set('json spaces', 2);
-app.listen(port, () => {
-  console.log(`Server is running on port ${port}`);
-})
 
 console.log("Creating conneccion to MongoDB...");
 mongoose.connect(dbConfig.MONGODB_URI)
