@@ -1,11 +1,11 @@
 const app = require('./app');
+const WebSocket = require('ws');
 const http = require('http');
 const mongoose = require('mongoose');
-const { Server } = require('socket.io');
 const Partida = require('./api/models/partida');
 
 const server = http.createServer(app);
-const io = new Server(server);
+const wss = new WebSocket.Server({ server });
 
 const port = process.env.PORT || 80;
 server.listen(port, () => console.log(`Escoltant en el port ${port}...`));
@@ -25,14 +25,16 @@ class Joc {
 
   iniciarCicle() {
     setInterval(() => {
-      if (this.enPartida) {
-        this.endGame(this.playersInGame, this.gameInfo);
+      if (this.playersInQueue != null && this.playersInQueue.length >= 1 && !this.enPartida) {
+        this.startGame();
+        this.properInici = Date.now() + this.pausaDuracio;
+        this.enPartida = true;
+      } else if (this.enPartida) {
+        this.endGame();
         this.properInici = Date.now() + this.partidaDuracio + this.pausaDuracio;
         this.enPartida = false;
       } else {
-        this.startGame(this.playersInQueue, this.playersInGame, this.gameInfo);
         this.properInici = Date.now() + this.pausaDuracio;
-        this.enPartida = true;
       }
     }, this.enPartida ? this.partidaDuracio : this.pausaDuracio);
   }
@@ -42,101 +44,93 @@ class Joc {
     return { tempsRestant: tempsRestant, enPartida: this.enPartida };
   }
 
-  startGame(playersInQueue, playersInGame, gameInfo) {
+  startGame() {
     const idCount = Partida.countDocuments;
     this.roscoLetters = this.generateRosco();
-    gameInfo = {
+    this.gameInfo = {
       "tipus": "multijugador",
       "id_partida": idCount + 1,
       "usuaris": {},
       "data_inici": Date.now(),
-      "data_fi": None,
+      "data_fi": Date.now(),
       "paraules_puntuades": [],
       "lletres_inici": this.roscoLetters,
       "puntuacio_usuaris": {}
     };
-    for (let player of playersInQueue) {
-      playersInGame.push(player);
-      gameInfo.usuaris[player.nickname] = player.id;
-      player.socket.emit('GAME_SATART', { roscoLetters: roscoLetters })
+    for (let player of this.playersInQueue) {
+      this.playersInGame.push(player);
+      this.gameInfo.usuaris[player.nickname] = player.id;
+      player.socket.send(JSON.stringify({ type: 'GAME_START', data: { roscoLetters: this.roscoLetters } }));
     }
-    playersInQueue.splice(0, playersInQueue.length);
-    const newPartida = new Partida(gameInfo);
+    this.playersInQueue.splice(0, this.playersInQueue.length);
+    const newPartida = new Partida(this.gameInfo);
     newPartida.save();
   }
 
-  endGame(playersInGame, gameInfo) {
-    for (let player of playersInGame) {
-      gameInfo.puntuacio_usuaris[player.nickname] = player.points;
-      player.socket.emit('GAME_FINISHED', { points: player.points });
-      player.socket.disconnect(true);
+  endGame() {
+    for (let player of this.playersInGame) {
+      this.gameInfo.puntuacio_usuaris[player.nickname] = player.points;
+      player.socket.send(JSON.stringify({ type: 'GAME_FINISHED', data: { points: player.points } }));
+      player.socket.terminate();
     }
-    gameInfo.data_fi = Date.now();
-    playersInGame.splice(0, playersInGame.length);
+    this.gameInfo.data_fi = Date.now();
+    this.playersInGame.splice(0, this.playersInGame.length);
 
     const nuevosDatos = {
       $set: {
         data_fi: Date.now(),
-        paraules_puntuades: gameInfo.paraules_puntuades,
-        puntuacio_usuaris: gameInfo.puntuacio_usuaris
+        paraules_puntuades: this.gameInfo.paraules_puntuades,
+        puntuacio_usuaris: this.gameInfo.puntuacio_usuaris
       }
     };
 
     Partida.updateOne(
-      { id_partida: gameInfo.id_partida },
+      { id_partida: this.gameInfo.id_partida },
       nuevosDatos
     )
   }
 
   generateRosco() {
-    lettersList = [];
+    let lettersList = [];
     return lettersList;
   }
 }
 
 const joc = new Joc(60000, 60000);  // 1 minut de partida, 1 minut de pausa
 
-io.on('connection', (socket) => {
-  console.log('Usuari connectat');
-  socket.emit('HANDSHAKE', { connection: 201 });
+wss.on('connection', (socket) => {
+  console.log('Usuario conectado');
+  socket.send(JSON.stringify({ type: 'HANDSHAKE', data: { connection: 201 } }));
 
   const intervalId = setInterval(() => {
-    const resposta = joc.consultaTempsRestant();
-    socket.emit('TEMPS_PER_INICI', resposta);
+    const respuesta = joc.consultaTiempoRestante();
+    socket.send(JSON.stringify({ type: 'TIEMPO_PARA_INICIO', data: respuesta }));
     if (joc.enPartida) {
-      socket.emit('PARTIDA_INICIADA', 'La partida ha començat');
+      socket.send(JSON.stringify({ type: 'PARTIDA_INICIADA', data: 'La partida ha comenzado' }));
     }
-  }, 10000);  // Envia el temps restant cada 10 segons
+  }, 10000);  // Envía el tiempo restante cada 10 segundos
 
-  socket.on('HANDSHAKE', (data) => {
-    juego.playersInQueue.push({
-      id: data.id,
-      socket: socket,
-      nickname: data.nickname,
-      points: 0
-    });
-    socket.emit('HANDSHAKE', { connection: 201, message: "Añadido a la lista de espera!" });
+  socket.on('message', (message) => {
+    const data = JSON.parse(message);
+    if (data.type === 'HANDSHAKE') {
+      joc.playersInQueue.push({
+        id: data.data.id,
+        socket: socket,
+        nickname: data.data.nickname,
+        points: 0
+      });
+      socket.send(JSON.stringify({ type: 'HANDSHAKE', data: { connection: 201, message: "Añadido a la lista de espera!" } }));
+    } else if (data.type === 'TIEMPO_PARA_INICIO') {
+      const respuesta = joc.consultaTiempoRestante();
+      socket.send(JSON.stringify({ type: 'TIEMPO_PARA_INICIO', data: respuesta }));
+    } else {
+      // Comando no reconocido
+      console.log(`Comando no reconocido: ${data.type}`);
+    }
   });
 
-  socket.on('TEMPS_PER_INICI', () => {
-    const resposta = joc.consultaTempsRestant();
-    socket.emit('TEMPS_PER_INICI', resposta);
-  });
-
-  socket.onAny((event, ...args) => {
-    // if (event !== 'consulta temps' && event !== 'disconnect' && event !== 'connect') {
-    //   console.log(`Comanda no reconeguda: ${event}`);
-    // const resposta = joc.consultaTempsRestant();
-    // socket.emit('TEMPS_PER_INICI', resposta);
-  });
-
-  socket.on('PARAULA', (data) => {
-    console.log(`Paraula rebuda: ${data.paraula}`);
-    socket.emit('PARAULA_REBUDA', `Paraula ${data.paraula} rebuda`);
-  });
-
-  socket.on('disconnect', () => {
-    console.log('Usuari desconnectat');
-    clearInterval(intervalId);  // Atura l'enviament periòdic quan l'usuari es desconnecta
+  socket.on('close', () => {
+    console.log('Usuario desconectado');
+    clearInterval(intervalId);  // Detiene el envío periódico cuando el usuario se desconecta
   });
 });
